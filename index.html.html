@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MineCraft Server Staff Panel</title>
+<style>
+:root{--bg:#0b0f14;--panel:#111821;--panel2:#17212d;--text:#eef5ff;--muted:#93a4b8;--green:#45e38a;--red:#ff5f6d;--blue:#55a8ff;--border:#243243}
+*{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,Arial;background:radial-gradient(circle at top,#172333 0,#0b0f14 42%);color:var(--text)}
+button,input,select,textarea{font:inherit} .app{display:flex;min-height:100vh}.side{width:245px;background:#0a0e13;border-right:1px solid var(--border);padding:22px;position:fixed;inset:0 auto 0 0}
+.logo{font-size:21px;font-weight:800;margin-bottom:30px}.logo span{color:var(--green)}nav button{display:block;width:100%;padding:12px 14px;margin:7px 0;border:0;border-radius:10px;background:transparent;color:var(--muted);text-align:left;cursor:pointer}nav button.active,nav button:hover{background:var(--panel2);color:#fff}
+.main{margin-left:245px;width:calc(100% - 245px);padding:30px;max-width:1400px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:26px}.top h1{margin:0;font-size:28px}.server{display:flex;align-items:center;gap:9px;color:var(--muted)}.dot{width:10px;height:10px;background:var(--green);border-radius:50%;box-shadow:0 0 12px var(--green)}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.card,.panel{background:rgba(17,24,33,.9);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:0 10px 35px #0003}.card small{color:var(--muted)}.num{font-size:30px;font-weight:800;margin-top:8px}.grid{display:grid;grid-template-columns:1.4fr 1fr;gap:18px;margin-top:18px}.panel h2{margin:0 0 16px;font-size:18px}
+table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;border-bottom:1px solid var(--border);text-align:left}th{font-size:12px;color:var(--muted);text-transform:uppercase}td{font-size:14px}.badge{padding:5px 9px;border-radius:99px;font-size:12px;font-weight:700}.online,.approved{background:#123a27;color:var(--green)}.pending{background:#3a2d12;color:#ffd36a}.rejected{background:#3a171d;color:#ff8992}
+.actions button,.primary,.danger{border:0;border-radius:8px;padding:8px 11px;cursor:pointer;font-weight:700}.primary{background:var(--green);color:#06120b}.danger{background:var(--red);color:#190509}.actions{display:flex;gap:7px}
+.search{width:100%;background:#0c1219;border:1px solid var(--border);color:#fff;padding:11px 13px;border-radius:9px;margin-bottom:12px}.section{display:none}.section.active{display:block}
+.modal{position:fixed;inset:0;background:#0009;display:none;align-items:center;justify-content:center;padding:20px}.modal.show{display:flex}.modalbox{background:#111821;border:1px solid var(--border);border-radius:16px;padding:24px;max-width:600px;width:100%}.modalbox h2{margin-top:0}.close{float:right;background:none;border:0;color:#fff;font-size:22px;cursor:pointer}
+label{display:block;color:var(--muted);font-size:13px;margin:12px 0 6px}textarea{width:100%;min-height:110px;background:#0b1118;border:1px solid var(--border);color:#fff;border-radius:9px;padding:10px}.empty{color:var(--muted);text-align:center;padding:25px}
+@media(max-width:900px){.side{width:190px}.main{margin-left:190px;width:calc(100% - 190px);padding:20px}.cards{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}}
+@media(max-width:650px){.side{position:static;width:100%;height:auto}.app{display:block}.main{margin:0;width:100%}.cards{grid-template-columns:1fr 1fr}.top{display:block}.server{margin-top:10px}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="side">
+  <div class="logo">⛏ <span>Mine</span>Panel</div>
+  <nav>
+    <button class="active" onclick="showSection('dashboard',this)">Dashboard</button>
+    <button onclick="showSection('players',this)">Players</button>
+    <button onclick="showSection('applications',this)">Staff Applications</button>
+    <button onclick="showSection('serverip',this)">Server IP</button>
+    <button onclick="showSection('settings',this)">Settings</button>
+  </nav>
+  <p style="position:absolute;bottom:15px;color:#607086;font-size:12px">Minecraft Server Admin</p>
+</aside>
+
+<main class="main">
+<section id="dashboard" class="section active">
+  <div class="top"><div><h1>Server Dashboard</h1><div class="server"><span class="dot"></span> Server Online</div></div></div>
+  <div class="cards">
+    <div class="card"><small>Total Players</small><div class="num" id="statPlayers">0</div></div>
+    <div class="card"><small>Online Now</small><div class="num" id="statOnline">0</div></div>
+    <div class="card"><small>Pending Applications</small><div class="num" id="statPending">0</div></div>
+    <div class="card"><small>Approved Staff</small><div class="num" id="statApproved">0</div></div>
+  </div>
+  <div class="grid">
+    <div class="panel"><h2>Recent Players</h2><div id="recentPlayers"></div></div>
+    <div class="panel"><h2>Recent Applications</h2><div id="recentApps"></div></div>
+  </div>
+</section>
+
+<section id="players" class="section">
+  <div class="top"><h1>Players</h1></div>
+  <div class="panel"><input class="search" id="playerSearch" placeholder="Search player..." oninput="renderPlayers()"><div id="playersTable"></div></div>
+</section>
+
+<section id="applications" class="section">
+  <div class="top"><h1>Staff Applications</h1></div>
+  <div class="panel"><input class="search" id="appSearch" placeholder="Search applications..." oninput="renderApps()"><div id="appsTable"></div></div>
+</section>
+
+<section id="serverip" class="section">
+  <div class="top"><h1>Server IP</h1></div>
+  <div class="panel" style="max-width:650px">
+    <h2>Connect to the Server</h2>
+    <p style="color:var(--muted)">Players can use the address below to join your Minecraft server.</p>
+    <div style="display:flex;gap:10px;align-items:center;background:#0b1118;border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:18px">
+      <div style="flex:1">
+        <small style="color:var(--muted)">Server Address</small>
+        <div id="displayServerIp" style="font-size:22px;font-weight:800;margin-top:5px;word-break:break-all">play.example.com</div>
+      </div>
+      <button class="primary" onclick="copyServerIp()">Copy IP</button>
+    </div>
+    <p id="copyMsg" style="color:var(--green);margin-bottom:0"></p>
+  </div>
+</section>
+
+<section id="settings" class="section">
+  <div class="top"><h1>Settings</h1></div>
+  <div class="panel">
+    <h2>Server Information</h2>
+    <label>Server Name</label><input class="search" id="serverName" value="My Minecraft Server">
+    <label>Server IP</label><input class="search" id="serverIp" value="play.example.com">
+    <button class="primary" onclick="saveSettings()">Save Settings</button>
+    <p id="saveMsg" style="color:var(--green)"></p>
+  </div>
+</section>
+</main>
+</div>
+
+<div class="modal" id="modal">
+ <div class="modalbox"><button class="close" onclick="closeModal()">×</button><h2 id="modalTitle"></h2><div id="modalBody"></div></div>
+</div>
+
+<script>
+const initialPlayers=[
+ {name:"Steve",role:"Player",status:"Online",joined:"2026-09-18"},
+ {name:"Alex",role:"Moderator",status:"Online",joined:"2026-08-21"},
+ {name:"NotchFan",role:"Player",status:"Offline",joined:"2026-07-12"},
+ {name:"CraftKing",role:"Helper",status:"Online",joined:"2026-09-02"},
+ {name:"BlockMaster",role:"Player",status:"Offline",joined:"2026-06-30"}
+];
+const initialApps=[
+ {id:1,name:"Steve",age:"17",position:"Moderator",reason:"I am active every day and want to help players.",status:"Pending"},
+ {id:2,name:"CraftKing",age:"19",position:"Helper",reason:"I have experience managing a community.",status:"Pending"},
+ {id:3,name:"PixelPro",age:"18",position:"Moderator",reason:"I can handle reports and keep chat friendly.",status:"Approved"}
+];
+
+let players=JSON.parse(localStorage.getItem("mc_players")||"null")||initialPlayers;
+let apps=JSON.parse(localStorage.getItem("mc_apps")||"null")||initialApps;
+let settings=JSON.parse(localStorage.getItem("mc_settings")||"null")||{name:"My Minecraft Server",ip:"play.example.com"};
+
+function save(){localStorage.setItem("mc_players",JSON.stringify(players));localStorage.setItem("mc_apps",JSON.stringify(apps));localStorage.setItem("mc_settings",JSON.stringify(settings))}
+function showSection(id,btn){document.querySelectorAll(".section").forEach(x=>x.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));btn.classList.add("active");renderAll()}
+function badge(s){return `<span class="badge ${s.toLowerCase()}">${s}</span>`}
+function renderPlayers(){
+ let q=(document.getElementById("playerSearch")?.value||"").toLowerCase();
+ let rows=players.filter(p=>p.name.toLowerCase().includes(q));
+ document.getElementById("playersTable").innerHTML=rows.length?`<table><thead><tr><th>Player</th><th>Role</th><th>Status</th><th>Joined</th></tr></thead><tbody>${rows.map(p=>`<tr><td><b>⛏ ${p.name}</b></td><td>${p.role}</td><td>${badge(p.status)}</td><td>${p.joined}</td></tr>`).join("")}</tbody></table>`:`<div class="empty">No players found.</div>`;
+}
+function renderApps(){
+ let q=(document.getElementById("appSearch")?.value||"").toLowerCase();
+ let rows=apps.filter(a=>(a.name+" "+a.position+" "+a.status).toLowerCase().includes(q));
+ document.getElementById("appsTable").innerHTML=rows.length?`<table><thead><tr><th>Applicant</th><th>Position</th><th>Status</th><th>Actions</th></tr></thead><tbody>${rows.map(a=>`<tr><td><b>${a.name}</b><br><small style="color:#7f90a5">Age ${a.age}</small></td><td>${a.position}</td><td>${badge(a.status)}</td><td class="actions">${a.status==="Pending"?`<button class="primary" onclick="decision(${a.id},'Approved')">Approve</button><button class="danger" onclick="decision(${a.id},'Rejected')">Reject</button>`:`<button style="background:#253140;color:#fff;border:0;border-radius:8px;padding:8px 11px;cursor:pointer" onclick="viewApp(${a.id})">View</button>`}</td></tr>`).join("")}</tbody></table>`:`<div class="empty">No applications found.</div>`;
+}
+function decision(id,status){let a=apps.find(x=>x.id===id);if(!a)return;a.status=status;save();renderAll()}
+function viewApp(id){let a=apps.find(x=>x.id===id);document.getElementById("modalTitle").textContent=a.name+" — Application";document.getElementById("modalBody").innerHTML=`<p><b>Position:</b> ${a.position}</p><p><b>Age:</b> ${a.age}</p><p><b>Status:</b> ${badge(a.status)}</p><p><b>Why should we select you?</b></p><p style="color:#c6d2df">${a.reason}</p>`;document.getElementById("modal").classList.add("show")}
+function closeModal(){document.getElementById("modal").classList.remove("show")}
+function copyServerIp(){
+ navigator.clipboard.writeText(settings.ip).then(()=>{
+   document.getElementById("copyMsg").textContent="Server IP copied!";
+   setTimeout(()=>document.getElementById("copyMsg").textContent="",1800);
+ });
+}
+function renderAll(){
+ document.getElementById("statPlayers").textContent=players.length;
+ document.getElementById("statOnline").textContent=players.filter(p=>p.status==="Online").length;
+ document.getElementById("statPending").textContent=apps.filter(a=>a.status==="Pending").length;
+ document.getElementById("statApproved").textContent=apps.filter(a=>a.status==="Approved").length;
+ document.getElementById("recentPlayers").innerHTML=players.slice(0,5).map(p=>`<p style="display:flex;justify-content:space-between"><span>⛏ ${p.name}</span>${badge(p.status)}</p>`).join("");
+ document.getElementById("recentApps").innerHTML=apps.slice(0,5).map(a=>`<p style="display:flex;justify-content:space-between"><span>${a.name}</span>${badge(a.status)}</p>`).join("");
+ renderPlayers();renderApps();
+ document.getElementById("displayServerIp").textContent=settings.ip;
+ document.getElementById("serverName").value=settings.name;document.getElementById("serverIp").value=settings.ip;
+}
+function saveSettings(){settings.name=document.getElementById("serverName").value;settings.ip=document.getElementById("serverIp").value;save();document.getElementById("saveMsg").textContent="Settings saved in this browser.";setTimeout(()=>document.getElementById("saveMsg").textContent="",1800)}
+renderAll();
+</script>
+</body>
+</html>
